@@ -12,41 +12,85 @@ const formatCurrency = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
 const ClientLedger = ({ client, open, onClose }: { client: Client | null; open: boolean; onClose: () => void }) => {
   if (!client) return null;
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{client.name} — Ledger</DialogTitle>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader className="flex flex-row items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <FileText size={24} className="text-primary" />
+            </div>
+            <div>
+              <DialogTitle className="text-xl">{client.name}</DialogTitle>
+              <p className="text-sm text-muted-foreground">Detailed Transaction Ledger</p>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={handlePrint} className="mt-1">
+            <Download size={16} className="mr-2" />
+            Print PDF
+          </Button>
         </DialogHeader>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-3 gap-3 mt-4">
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+            <p className="text-xs font-semibold text-primary uppercase tracking-wide">Total Credit</p>
+            <p className="text-lg font-bold mt-1">{formatCurrency(client.totalSale)}</p>
+          </div>
+          <div className="rounded-lg border border-accent/20 bg-accent/10 p-3">
+            <p className="text-xs font-semibold text-accent-foreground uppercase tracking-wide">Total Collection</p>
+            <p className="text-lg font-bold text-accent-foreground mt-1">{formatCurrency(client.totalCollection)}</p>
+          </div>
+          <div className="rounded-lg border border-muted p-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pending Balance</p>
+            <p className="text-lg font-bold mt-1">{formatCurrency(client.balance)}</p>
+          </div>
+        </div>
+
         <table className="data-table mt-4">
           <thead>
             <tr>
               <th>Date</th>
-              <th>Type</th>
-              <th className="text-right">Amount</th>
+              <th>Description</th>
+              <th className="text-right">Sale</th>
+              <th className="text-right">Collection</th>
               <th className="text-right">Balance</th>
             </tr>
           </thead>
           <tbody>
             {client.transactions.map((t, i) => (
               <tr key={i}>
-                <td className="text-sm">{t.date}</td>
+                <td className="text-sm text-muted-foreground">{t.date}</td>
                 <td>
-                  <span className={
-                    t.type === "sale" ? "badge-pending" :
-                    t.type === "collection" ? "badge-paid" :
-                    "bg-destructive/10 text-destructive text-xs font-medium px-2.5 py-0.5 rounded-full"
-                  }>
-                    {t.type.charAt(0).toUpperCase() + t.type.slice(1)}
+                  <span className="font-medium">
+                    {t.type === "sale" ? "Sale" : t.type === "collection" ? "Collection" : "Return Adjustment"}
                   </span>
+                  {t.type === "return" && (
+                    <span className="ml-2 bg-destructive/10 text-destructive text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Return</span>
+                  )}
                 </td>
-                <td className={`text-right ${
-                  t.type === "collection" ? "amount-positive" :
-                  t.type === "return" ? "amount-negative" : "amount-neutral"
-                }`}>
-                  {t.type === "return" ? `-${formatCurrency(t.amount)}` : formatCurrency(t.amount)}
+                <td className="text-right">
+                  {t.type === "sale" ? (
+                    <span className="amount-neutral">{formatCurrency(t.amount)}</span>
+                  ) : t.type === "return" ? (
+                    <span className="amount-negative">-{formatCurrency(t.amount)}</span>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
                 </td>
-                <td className="text-right amount-neutral">{formatCurrency(t.balance)}</td>
+                <td className="text-right">
+                  {t.type === "collection" ? (
+                    <span className="amount-positive">{formatCurrency(t.amount)}</span>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </td>
+                <td className="text-right font-semibold">{formatCurrency(t.balance)}</td>
               </tr>
             ))}
           </tbody>
@@ -261,38 +305,43 @@ const Clients = () => {
       <Dialog open={!!showAddTransaction} onOpenChange={() => setShowAddTransaction(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Transaction — {showAddTransaction?.name}</DialogTitle>
+            <DialogTitle>Add Transaction</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Record a new entry for <span className="font-bold text-foreground">{showAddTransaction?.name}</span>
+            </p>
           </DialogHeader>
-          <div className="space-y-4 mt-4">
+          <div className="space-y-4 mt-2">
             <div>
-              <Label>Type</Label>
+              <Label className="font-semibold">Transaction Type</Label>
               <Select value={txType} onValueChange={v => setTxType(v as "sale" | "collection" | "return")}>
                 <SelectTrigger className="mt-1.5">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="sale">Sale</SelectItem>
-                  <SelectItem value="collection">Collection</SelectItem>
-                  <SelectItem value="return">Return</SelectItem>
+                  <SelectItem value="sale">Sale (Credit)</SelectItem>
+                  <SelectItem value="collection">Collection (Payment)</SelectItem>
+                  <SelectItem value="return">Return Adjustment</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label htmlFor="txDate">Date</Label>
+              <Label htmlFor="txAmount" className="font-semibold">Amount (₹)</Label>
+              <Input id="txAmount" type="number" value={txAmount} onChange={e => setTxAmount(e.target.value)} placeholder="Enter amount" className="mt-1.5" />
+            </div>
+            <div>
+              <Label htmlFor="txDate" className="font-semibold">Date</Label>
               <Input id="txDate" type="date" value={txDate} onChange={e => setTxDate(e.target.value)} className="mt-1.5" />
             </div>
             <div>
-              <Label htmlFor="txAmount">Amount (₹)</Label>
-              <Input id="txAmount" type="number" value={txAmount} onChange={e => setTxAmount(e.target.value)} placeholder="0" className="mt-1.5" />
+              <Label htmlFor="txDesc" className="font-semibold">Description</Label>
+              <Input id="txDesc" value={txDescription} onChange={e => setTxDescription(e.target.value)} placeholder="e.g. Weekly Payment, Bulk Order" className="mt-1.5" />
             </div>
-            <div>
-              <Label htmlFor="txDesc">Description (optional)</Label>
-              <Input id="txDesc" value={txDescription} onChange={e => setTxDescription(e.target.value)} placeholder="e.g. Monthly collection" className="mt-1.5" />
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="ghost" onClick={() => setShowAddTransaction(null)}>Cancel</Button>
+              <Button onClick={handleAddTransaction} disabled={!txAmount || !txDate}>
+                Save Transaction
+              </Button>
             </div>
-            <Button onClick={handleAddTransaction} className="w-full" disabled={!txAmount || !txDate}>
-              <PlusCircle size={16} className="mr-2" />
-              Add Transaction
-            </Button>
           </div>
         </DialogContent>
       </Dialog>
