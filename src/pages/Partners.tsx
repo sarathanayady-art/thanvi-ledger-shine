@@ -1,18 +1,14 @@
 import AppLayout from "@/components/AppLayout";
-import { partners, shareHistory, getCurrentBalance } from "@/data/partners";
-import { RETAIL_TOTAL } from "@/data/retail";
-import { getTotalCollection } from "@/data/clients";
+import { useAppData } from "@/hooks/use-app-data";
 
 const formatCurrency = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
 const Partners = () => {
-  const totalCollection = getTotalCollection();
-  const totalSharesTaken = shareHistory.reduce((s, sh) => s + sh.amount, 0);
-  const currentBalance = getCurrentBalance();
+  const { partners, shares, totalCollection, retailTotal, totalSharesTaken, currentBalance } = useAppData();
 
   // Group share history by date
-  const dateGroups: Record<string, typeof shareHistory> = {};
-  shareHistory.forEach(s => {
+  const dateGroups: Record<string, typeof shares> = {};
+  shares.forEach(s => {
     if (!dateGroups[s.date]) dateGroups[s.date] = [];
     dateGroups[s.date].push(s);
   });
@@ -28,7 +24,7 @@ const Partners = () => {
         <div className="stat-card border-l-4 border-l-primary">
           <p className="text-xs font-medium text-muted-foreground uppercase">Total Collection</p>
           <p className="text-2xl font-bold mt-1 font-mono">{formatCurrency(totalCollection)}</p>
-          <p className="text-xs text-muted-foreground mt-1">+ {formatCurrency(RETAIL_TOTAL)} retail</p>
+          <p className="text-xs text-muted-foreground mt-1">+ {formatCurrency(retailTotal)} retail</p>
         </div>
         <div className="stat-card border-l-4 border-l-accent">
           <p className="text-xs font-medium text-muted-foreground uppercase">Total Shares Taken</p>
@@ -54,11 +50,11 @@ const Partners = () => {
             </tr>
           </thead>
           <tbody>
-            {Object.entries(dateGroups).map(([date, shares]) => (
+            {Object.entries(dateGroups).map(([date, dateShares]) => (
               <tr key={date}>
                 <td className="font-medium">{date}</td>
                 {partners.map(p => {
-                  const s = shares.find(sh => sh.partner === p.name);
+                  const s = dateShares.find(sh => sh.partner === p.name);
                   return (
                     <td key={p.name} className="text-right amount-neutral">
                       {s ? formatCurrency(s.amount) : "—"}
@@ -66,7 +62,7 @@ const Partners = () => {
                   );
                 })}
                 <td className="text-right amount-neutral font-bold">
-                  {formatCurrency(shares.reduce((sum, s) => sum + s.amount, 0))}
+                  {formatCurrency(dateShares.reduce((sum, s) => sum + s.amount, 0))}
                 </td>
               </tr>
             ))}
@@ -74,7 +70,7 @@ const Partners = () => {
               <td>TOTAL</td>
               {partners.map(p => (
                 <td key={p.name} className="text-right amount-neutral">
-                  {formatCurrency(shareHistory.filter(s => s.partner === p.name).reduce((sum, s) => sum + s.amount, 0))}
+                  {formatCurrency(shares.filter(s => s.partner === p.name).reduce((sum, s) => sum + s.amount, 0))}
                 </td>
               ))}
               <td className="text-right amount-neutral">{formatCurrency(totalSharesTaken)}</td>
@@ -87,19 +83,22 @@ const Partners = () => {
       <div className="stat-card">
         <h3 className="font-semibold mb-4">Cash Flow Summary</h3>
         <div className="space-y-3">
-          {[
-            { label: "Share Taking 03 Dec 25", amount: 64699 },
-            { label: "Cash in Balance as on 30 Dec 25", amount: 83137 },
-            { label: "Share Taking 30 Dec 25", amount: 83137 },
-            { label: "Cash in Balance as on 31 Jan 26", amount: 98946 },
-            { label: "Share Taking 31 Jan 26", amount: 98946 },
-            { label: "Current Balance", amount: currentBalance },
-          ].map((item, i) => (
-            <div key={i} className="flex justify-between items-center p-3 rounded-lg bg-muted/30">
-              <span className="text-sm">{item.label}</span>
-              <span className="font-bold font-mono">{formatCurrency(item.amount)}</span>
-            </div>
-          ))}
+          <div className="flex justify-between items-center p-3 rounded-lg bg-muted/30">
+            <span className="text-sm">Total Collection (Clients)</span>
+            <span className="font-bold font-mono">{formatCurrency(totalCollection)}</span>
+          </div>
+          <div className="flex justify-between items-center p-3 rounded-lg bg-muted/30">
+            <span className="text-sm">Total Retail Sales</span>
+            <span className="font-bold font-mono">{formatCurrency(retailTotal)}</span>
+          </div>
+          <div className="flex justify-between items-center p-3 rounded-lg bg-muted/30">
+            <span className="text-sm">Total Shares Taken</span>
+            <span className="font-bold font-mono text-destructive">-{formatCurrency(totalSharesTaken)}</span>
+          </div>
+          <div className="flex justify-between items-center p-3 rounded-lg bg-primary/5 border border-primary/20">
+            <span className="text-sm font-semibold">Current Balance</span>
+            <span className="font-bold font-mono text-primary">{formatCurrency(currentBalance)}</span>
+          </div>
         </div>
       </div>
     </AppLayout>

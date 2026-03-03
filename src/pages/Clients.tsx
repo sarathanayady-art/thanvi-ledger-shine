@@ -1,7 +1,7 @@
 import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
-import { clientsData as initialClientsData, Client, Transaction } from "@/data/clients";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { Client, Transaction } from "@/data/clients";
+import { useAppData } from "@/hooks/use-app-data";
 import { FileText, Download, PlusCircle, UserPlus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -13,10 +13,6 @@ const formatCurrency = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
 const ClientLedger = ({ client, open, onClose }: { client: Client | null; open: boolean; onClose: () => void }) => {
   if (!client) return null;
-
-  const handlePrint = () => {
-    window.print();
-  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -31,13 +27,12 @@ const ClientLedger = ({ client, open, onClose }: { client: Client | null; open: 
               <p className="text-sm text-muted-foreground">Detailed Transaction Ledger</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={handlePrint} className="mt-1">
+          <Button variant="outline" size="sm" onClick={() => window.print()} className="mt-1">
             <Download size={16} className="mr-2" />
             Print PDF
           </Button>
         </DialogHeader>
 
-        {/* Summary Cards */}
         <div className="grid grid-cols-3 gap-3 mt-4">
           <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
             <p className="text-xs font-semibold text-primary uppercase tracking-wide">Total Credit</p>
@@ -102,15 +97,12 @@ const ClientLedger = ({ client, open, onClose }: { client: Client | null; open: 
 };
 
 const Clients = () => {
-  const [clients, setClients] = useLocalStorage<Client[]>("thanvi_clients", [...initialClientsData]);
+  const { clients, setClients } = useAppData();
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [showAddClient, setShowAddClient] = useState(false);
   const [showAddTransaction, setShowAddTransaction] = useState<Client | null>(null);
 
-  // Add client form
   const [newClientName, setNewClientName] = useState("");
-
-  // Add transaction form
   const [txType, setTxType] = useState<"sale" | "collection" | "return">("sale");
   const [txAmount, setTxAmount] = useState("");
   const [txDate, setTxDate] = useState("");
@@ -120,11 +112,7 @@ const Clients = () => {
     if (!newClientName.trim()) return;
     const newClient: Client = {
       name: newClientName.trim().toUpperCase(),
-      totalSale: 0,
-      totalCollection: 0,
-      balance: 0,
-      balancePercent: 0,
-      transactions: [],
+      totalSale: 0, totalCollection: 0, balance: 0, balancePercent: 0, transactions: [],
     };
     setClients(prev => [...prev, newClient]);
     setNewClientName("");
@@ -138,24 +126,19 @@ const Clients = () => {
 
     const client = showAddTransaction;
     const lastBalance = client.transactions.length > 0
-      ? client.transactions[client.transactions.length - 1].balance
-      : 0;
+      ? client.transactions[client.transactions.length - 1].balance : 0;
 
     let newBalance = lastBalance;
     if (txType === "sale") newBalance += amount;
     else if (txType === "collection") newBalance -= amount;
     else if (txType === "return") newBalance -= amount;
 
-    // Format date to match existing format (e.g., "27 Feb 26")
     const d = new Date(txDate);
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const formattedDate = `${String(d.getDate()).padStart(2, "0")} ${months[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
 
     const newTx: Transaction = {
-      date: formattedDate,
-      type: txType,
-      amount,
-      balance: Math.max(0, newBalance),
+      date: formattedDate, type: txType, amount, balance: Math.max(0, newBalance),
       description: txDescription || undefined,
     };
 
@@ -163,7 +146,7 @@ const Clients = () => {
       prev.map(c => {
         if (c.name !== client.name) return c;
         const updatedTransactions = [...c.transactions, newTx];
-        const totalSale = txType === "sale" ? c.totalSale + amount : c.totalSale;
+        const totalSale = txType === "sale" ? c.totalSale + amount : (txType === "return" ? c.totalSale - amount : c.totalSale);
         const totalCollection = txType === "collection" ? c.totalCollection + amount : c.totalCollection;
         const balance = Math.max(0, newBalance);
         const balancePercent = totalSale > 0 ? (balance / totalSale) * 100 : 0;
@@ -171,10 +154,7 @@ const Clients = () => {
       })
     );
 
-    setTxAmount("");
-    setTxDate("");
-    setTxDescription("");
-    setTxType("sale");
+    setTxAmount(""); setTxDate(""); setTxDescription(""); setTxType("sale");
     setShowAddTransaction(null);
   };
 
@@ -183,8 +163,7 @@ const Clients = () => {
     const rows = clients.map(c => `${c.name},${c.totalSale},${c.totalCollection},${c.balance},${c.balancePercent}`).join("\n");
     const blob = new Blob([headers + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "clients_export.csv"; a.click();
+    const a = document.createElement("a"); a.href = url; a.download = "clients_export.csv"; a.click();
   };
 
   return (
@@ -238,19 +217,11 @@ const Clients = () => {
                 </td>
                 <td className="text-center">
                   <div className="flex items-center justify-center gap-1">
-                    <button
-                      onClick={() => setShowAddTransaction(c)}
-                      className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                      title="Add Transaction"
-                    >
+                    <button onClick={() => setShowAddTransaction(c)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Add Transaction">
                       <PlusCircle size={16} />
                     </button>
                     {c.transactions.length > 0 && (
-                      <button
-                        onClick={() => setSelectedClient(c)}
-                        className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                        title="View Ledger"
-                      >
+                      <button onClick={() => setSelectedClient(c)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="View Ledger">
                         <FileText size={16} />
                       </button>
                     )}
@@ -276,33 +247,21 @@ const Clients = () => {
 
       <ClientLedger client={selectedClient} open={!!selectedClient} onClose={() => setSelectedClient(null)} />
 
-      {/* Add Client Dialog */}
       <Dialog open={showAddClient} onOpenChange={setShowAddClient}>
         <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add New Client</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Add New Client</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
               <Label htmlFor="clientName">Client Name</Label>
-              <Input
-                id="clientName"
-                value={newClientName}
-                onChange={e => setNewClientName(e.target.value)}
-                placeholder="Enter client name"
-                className="mt-1.5"
-                onKeyDown={e => e.key === "Enter" && handleAddClient()}
-              />
+              <Input id="clientName" value={newClientName} onChange={e => setNewClientName(e.target.value)} placeholder="Enter client name" className="mt-1.5" onKeyDown={e => e.key === "Enter" && handleAddClient()} />
             </div>
             <Button onClick={handleAddClient} className="w-full" disabled={!newClientName.trim()}>
-              <UserPlus size={16} className="mr-2" />
-              Add Client
+              <UserPlus size={16} className="mr-2" />Add Client
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Add Transaction Dialog */}
       <Dialog open={!!showAddTransaction} onOpenChange={() => setShowAddTransaction(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -315,9 +274,7 @@ const Clients = () => {
             <div>
               <Label className="font-semibold">Transaction Type</Label>
               <Select value={txType} onValueChange={v => setTxType(v as "sale" | "collection" | "return")}>
-                <SelectTrigger className="mt-1.5">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="sale">Sale (Credit)</SelectItem>
                   <SelectItem value="collection">Collection (Payment)</SelectItem>
@@ -339,9 +296,7 @@ const Clients = () => {
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="ghost" onClick={() => setShowAddTransaction(null)}>Cancel</Button>
-              <Button onClick={handleAddTransaction} disabled={!txAmount || !txDate}>
-                Save Transaction
-              </Button>
+              <Button onClick={handleAddTransaction} disabled={!txAmount || !txDate}>Save Transaction</Button>
             </div>
           </div>
         </DialogContent>

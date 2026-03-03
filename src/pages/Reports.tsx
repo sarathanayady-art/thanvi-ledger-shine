@@ -1,7 +1,5 @@
 import AppLayout from "@/components/AppLayout";
-import { clientsData } from "@/data/clients";
-import { retailSalesData } from "@/data/retail";
-import { expensesData } from "@/data/expenses";
+import { useAppData } from "@/hooks/use-app-data";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 
 const formatCurrency = (n: number) => `₹${n.toLocaleString("en-IN")}`;
@@ -12,49 +10,52 @@ const parseMonth = (dateStr: string) => {
   return `${parts[1]} '${parts[2]}`;
 };
 
-const getMonthlyBalanceSheet = () => {
-  const months: Record<string, { sales: number; collections: number; expenses: number; retail: number }> = {};
-  const order = ["Oct '25", "Nov '25", "Dec '25", "Jan '26", "Feb '26"];
-  order.forEach(m => { months[m] = { sales: 0, collections: 0, expenses: 0, retail: 0 }; });
+const Reports = () => {
+  const { clients, sales, expenses } = useAppData();
 
-  clientsData.forEach(c => {
-    c.transactions.forEach(t => {
-      const m = parseMonth(t.date);
-      if (m && months[m]) {
-        if (t.type === "sale") months[m].sales += t.amount;
-        else if (t.type === "collection") months[m].collections += t.amount;
+  const getMonthlyBalanceSheet = () => {
+    const months: Record<string, { sales: number; collections: number; expenses: number; retail: number }> = {};
+    const order = ["Oct '25", "Nov '25", "Dec '25", "Jan '26", "Feb '26", "Mar '26"];
+    order.forEach(m => { months[m] = { sales: 0, collections: 0, expenses: 0, retail: 0 }; });
+
+    clients.forEach(c => {
+      c.transactions.forEach(t => {
+        const m = parseMonth(t.date);
+        if (m && months[m]) {
+          if (t.type === "sale") months[m].sales += t.amount;
+          else if (t.type === "collection") months[m].collections += t.amount;
+        }
+      });
+    });
+
+    sales.forEach(r => {
+      const m = parseMonth(r.date);
+      if (m && months[m]) months[m].retail += r.totalAmount;
+    });
+
+    expenses.forEach(e => {
+      const m = parseMonth(e.date);
+      if (m && months[m] && e.amount > 0 && !e.description.includes("Balancing") && !e.description.includes("Collection Sharing")) {
+        months[m].expenses += e.amount;
       }
     });
-  });
 
-  retailSalesData.forEach(r => {
-    const m = parseMonth(r.date);
-    if (m && months[m]) months[m].retail += r.totalAmount;
-  });
+    return order
+      .filter(m => months[m].sales > 0 || months[m].collections > 0 || months[m].retail > 0 || months[m].expenses > 0)
+      .map(m => ({
+        month: m,
+        ...months[m],
+        net: months[m].collections + months[m].retail - months[m].expenses,
+      }));
+  };
 
-  expensesData.forEach(e => {
-    const m = parseMonth(e.date);
-    if (m && months[m] && e.amount > 0 && !e.description.includes("Balancing") && !e.description.includes("Collection Sharing")) {
-      months[m].expenses += e.amount;
-    }
-  });
-
-  return order.map(m => ({
-    month: m,
-    ...months[m],
-    net: months[m].collections + months[m].retail - months[m].expenses,
-  }));
-};
-
-const Reports = () => {
   const balanceSheet = getMonthlyBalanceSheet();
 
-  // Risk distribution
   const riskData = [
-    { name: "Cleared (0%)", value: clientsData.filter(c => c.balancePercent === 0).length, color: "hsl(var(--success))" },
-    { name: "Low (<30%)", value: clientsData.filter(c => c.balancePercent > 0 && c.balancePercent < 30).length, color: "hsl(var(--chart-balance))" },
-    { name: "Medium (30-70%)", value: clientsData.filter(c => c.balancePercent >= 30 && c.balancePercent < 70).length, color: "hsl(var(--warning))" },
-    { name: "High (>70%)", value: clientsData.filter(c => c.balancePercent >= 70).length, color: "hsl(var(--destructive))" },
+    { name: "Cleared (0%)", value: clients.filter(c => c.balancePercent === 0).length, color: "hsl(var(--success))" },
+    { name: "Low (<30%)", value: clients.filter(c => c.balancePercent > 0 && c.balancePercent < 30).length, color: "hsl(var(--chart-balance))" },
+    { name: "Medium (30-70%)", value: clients.filter(c => c.balancePercent >= 30 && c.balancePercent < 70).length, color: "hsl(var(--warning))" },
+    { name: "High (>70%)", value: clients.filter(c => c.balancePercent >= 70).length, color: "hsl(var(--destructive))" },
   ];
 
   const totals = balanceSheet.reduce((acc, m) => ({
@@ -103,7 +104,6 @@ const Reports = () => {
         </div>
       </div>
 
-      {/* Monthly Balance Sheet */}
       <div className="stat-card">
         <h3 className="font-semibold mb-4">Monthly Balance Sheet</h3>
         <div className="overflow-x-auto">
