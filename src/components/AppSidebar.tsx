@@ -6,46 +6,87 @@ import {
   Receipt,
   FileBarChart,
   Split,
+  Menu,
+  X,
 } from "lucide-react";
+import { useState } from "react";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/clients", icon: Users, label: "Clients" },
-  { to: "/retail", icon: ShoppingBag, label: "Retail Sales" },
+  { to: "/retail", icon: ShoppingBag, label: "Retail" },
   { to: "/expenses", icon: Receipt, label: "Expenses" },
-  { to: "/partners", icon: Split, label: "Partner Splits" },
+  { to: "/partners", icon: Split, label: "Partners" },
   { to: "/reports", icon: FileBarChart, label: "Reports" },
 ];
 
-const AppSidebar = () => {
+const AppTopBar = () => {
   const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-64 bg-[hsl(var(--sidebar-background))] text-[hsl(var(--sidebar-foreground))] flex flex-col z-50">
-      <div className="px-5 py-6 border-b border-[hsl(var(--sidebar-border))]">
-        <h1 className="text-lg font-bold text-[hsl(var(--sidebar-primary))]">E-Ledger</h1>
-        <p className="text-xs text-[hsl(var(--sidebar-foreground)/0.6)] mt-0.5">Thanvi Collections</p>
+    <header className="sticky top-0 z-50 w-full bg-[hsl(var(--sidebar-background))] text-[hsl(var(--sidebar-foreground))] shadow-md">
+      <div className="flex items-center justify-between px-5 h-14">
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg font-bold text-[hsl(var(--sidebar-primary))]">E-Ledger</h1>
+          <span className="hidden sm:inline text-xs text-[hsl(var(--sidebar-foreground)/0.5)] ml-1">Thanvi Collections</span>
+        </div>
+
+        {/* Desktop nav */}
+        <nav className="hidden md:flex items-center gap-1">
+          {navItems.map(({ to, icon: Icon, label }) => {
+            const isActive = location.pathname === to;
+            return (
+              <NavLink
+                key={to}
+                to={to}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ${
+                  isActive
+                    ? "bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-primary))]"
+                    : "hover:bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-foreground))]"
+                }`}
+              >
+                <Icon size={16} />
+                <span>{label}</span>
+              </NavLink>
+            );
+          })}
+        </nav>
+
+        {/* Mobile hamburger */}
+        <button
+          className="md:hidden p-2 rounded-lg hover:bg-[hsl(var(--sidebar-accent))] transition-colors"
+          onClick={() => setMobileOpen(!mobileOpen)}
+        >
+          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
       </div>
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map(({ to, icon: Icon, label }) => {
-          const isActive = location.pathname === to;
-          return (
-            <NavLink
-              key={to}
-              to={to}
-              className={`sidebar-nav-item ${isActive ? "active" : ""}`}
-            >
-              <Icon size={18} />
-              <span>{label}</span>
-            </NavLink>
-          );
-        })}
-      </nav>
-      <div className="px-5 py-4 border-t border-[hsl(var(--sidebar-border))] text-xs text-[hsl(var(--sidebar-foreground)/0.4)]">
-        © 2025 Thanvi Collections
-      </div>
-    </aside>
+
+      {/* Mobile dropdown */}
+      {mobileOpen && (
+        <nav className="md:hidden px-4 pb-3 space-y-1 border-t border-[hsl(var(--sidebar-border))]">
+          {navItems.map(({ to, icon: Icon, label }) => {
+            const isActive = location.pathname === to;
+            return (
+              <NavLink
+                key={to}
+                to={to}
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
+                  isActive
+                    ? "bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-primary))]"
+                    : "hover:bg-[hsl(var(--sidebar-accent))]"
+                }`}
+              >
+                <Icon size={16} />
+                <span>{label}</span>
+              </NavLink>
+            );
+          })}
+        </nav>
+      )}
+    </header>
   );
 };
 
-export default AppSidebar;
+export default AppTopBar;
