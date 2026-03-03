@@ -1,6 +1,7 @@
 import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { clientsData as initialClientsData, Client, Transaction } from "@/data/clients";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 import { FileText, Download, PlusCircle, UserPlus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -101,7 +102,7 @@ const ClientLedger = ({ client, open, onClose }: { client: Client | null; open: 
 };
 
 const Clients = () => {
-  const [clients, setClients] = useState<Client[]>([...initialClientsData]);
+  const [clients, setClients] = useLocalStorage<Client[]>("thanvi_clients", [...initialClientsData]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [showAddClient, setShowAddClient] = useState(false);
   const [showAddTransaction, setShowAddTransaction] = useState<Client | null>(null);
