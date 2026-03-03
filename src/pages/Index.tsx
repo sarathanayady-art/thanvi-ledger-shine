@@ -1,37 +1,36 @@
 import AppLayout from "@/components/AppLayout";
 import StatCard from "@/components/StatCard";
-import { getTotalSale, getTotalCollection, getTotalBalance, getOverallBalancePercent, clientsData } from "@/data/clients";
-import { RETAIL_TOTAL } from "@/data/retail";
-import { getTotalExpenses } from "@/data/expenses";
-import { getCurrentBalance } from "@/data/partners";
+import { useAppData } from "@/hooks/use-app-data";
 import { IndianRupee, TrendingUp, TrendingDown, Wallet, Users, ShoppingBag } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 const formatCurrency = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
-const getMonthlyData = () => {
-  const months: Record<string, { sale: number; collection: number }> = {};
-  clientsData.forEach(c => {
-    c.transactions.forEach(t => {
-      const parts = t.date.split(" ");
-      const key = `${parts[1]} '${parts[2]}`;
-      if (!months[key]) months[key] = { sale: 0, collection: 0 };
-      if (t.type === "sale") months[key].sale += t.amount;
-      else if (t.type === "collection") months[key].collection += t.amount;
-    });
-  });
-  const order = ["Nov '25", "Dec '25", "Jan '26", "Feb '26"];
-  return order.map(m => ({ month: m, sale: months[m]?.sale || 0, collection: months[m]?.collection || 0 }));
-};
-
 const Dashboard = () => {
-  const totalSale = getTotalSale();
-  const totalCollection = getTotalCollection();
-  const totalBalance = getTotalBalance();
-  const balPercent = getOverallBalancePercent();
+  const {
+    clients, totalSale, totalCollection, totalBalance,
+    overallBalancePercent, retailTotal, expensesTotal,
+    currentBalance, totalClients, pendingClients,
+  } = useAppData();
+
+  // Monthly data from live clients
+  const getMonthlyData = () => {
+    const months: Record<string, { sale: number; collection: number }> = {};
+    clients.forEach(c => {
+      c.transactions.forEach(t => {
+        const parts = t.date.split(" ");
+        const key = `${parts[1]} '${parts[2]}`;
+        if (!months[key]) months[key] = { sale: 0, collection: 0 };
+        if (t.type === "sale") months[key].sale += t.amount;
+        else if (t.type === "collection") months[key].collection += t.amount;
+      });
+    });
+    const order = ["Nov '25", "Dec '25", "Jan '26", "Feb '26"];
+    return order.map(m => ({ month: m, sale: months[m]?.sale || 0, collection: months[m]?.collection || 0 }));
+  };
+
   const monthlyData = getMonthlyData();
-  const totalClients = clientsData.length;
-  const pendingClients = clientsData.filter(c => c.balance > 0).length;
+  const balPercent = overallBalancePercent;
 
   return (
     <AppLayout>
@@ -44,7 +43,7 @@ const Dashboard = () => {
         <StatCard
           title="Total Sales"
           value={formatCurrency(totalSale)}
-          subtitle={`+ ₹${RETAIL_TOTAL.toLocaleString("en-IN")} retail`}
+          subtitle={`+ ${formatCurrency(retailTotal)} retail`}
           icon={<TrendingUp size={20} />}
           variant="default"
         />
@@ -64,7 +63,7 @@ const Dashboard = () => {
         />
         <StatCard
           title="Current Cash Balance"
-          value={formatCurrency(getCurrentBalance())}
+          value={formatCurrency(currentBalance)}
           subtitle="After partner shares"
           icon={<Wallet size={20} />}
           variant="warning"
@@ -109,14 +108,14 @@ const Dashboard = () => {
                 <ShoppingBag size={16} className="text-accent" />
                 <span className="text-sm">Retail Sales</span>
               </div>
-              <span className="font-bold font-mono">{formatCurrency(RETAIL_TOTAL)}</span>
+              <span className="font-bold font-mono">{formatCurrency(retailTotal)}</span>
             </div>
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
               <div className="flex items-center gap-2">
                 <IndianRupee size={16} className="text-warning" />
                 <span className="text-sm">Total Expenses</span>
               </div>
-              <span className="font-bold font-mono">{formatCurrency(getTotalExpenses())}</span>
+              <span className="font-bold font-mono">{formatCurrency(expensesTotal)}</span>
             </div>
           </div>
         </div>
@@ -136,7 +135,7 @@ const Dashboard = () => {
             </tr>
           </thead>
           <tbody>
-            {clientsData
+            {clients
               .filter(c => c.balance > 0)
               .sort((a, b) => b.balance - a.balance)
               .slice(0, 8)

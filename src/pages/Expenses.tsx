@@ -1,7 +1,7 @@
 import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
-import { expensesData as initialExpenses, Expense } from "@/data/expenses";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { Expense } from "@/data/expenses";
+import { useAppData } from "@/hooks/use-app-data";
 import { PlusCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 const formatCurrency = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
 const Expenses = () => {
-  const [expenses, setExpenses] = useLocalStorage<Expense[]>("thanvi_expenses", [...initialExpenses]);
+  const { expenses, setExpenses } = useAppData();
   const [showAdd, setShowAdd] = useState(false);
 
-  // Form state
   const [date, setDate] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -33,10 +32,7 @@ const Expenses = () => {
     const formattedDate = `${String(d.getDate()).padStart(2, "0")} ${months[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
 
     const newExpense: Expense = {
-      date: formattedDate,
-      description: description.trim(),
-      amount: amt,
-      paidBy,
+      date: formattedDate, description: description.trim(), amount: amt, paidBy,
       runningTotal: grandTotal + amt,
     };
 
@@ -93,7 +89,6 @@ const Expenses = () => {
         </table>
       </div>
 
-      {/* Add Expense Dialog */}
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -116,9 +111,7 @@ const Expenses = () => {
             <div>
               <Label className="font-semibold">Paid By</Label>
               <Select value={paidBy} onValueChange={setPaidBy}>
-                <SelectTrigger className="mt-1.5">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="SPV">Sarath (SPV)</SelectItem>
                   <SelectItem value="VISH">Vishnu</SelectItem>
@@ -128,9 +121,7 @@ const Expenses = () => {
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="ghost" onClick={() => setShowAdd(false)}>Cancel</Button>
-              <Button onClick={handleAdd} disabled={!date || !description || !amount}>
-                Save Expense
-              </Button>
+              <Button onClick={handleAdd} disabled={!date || !description || !amount}>Save Expense</Button>
             </div>
           </div>
         </DialogContent>

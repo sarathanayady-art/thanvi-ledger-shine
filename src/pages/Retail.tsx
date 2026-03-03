@@ -1,7 +1,7 @@
 import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
-import { retailSalesData as initialRetailData, RetailSale } from "@/data/retail";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { RetailSale } from "@/data/retail";
+import { useAppData } from "@/hooks/use-app-data";
 import { PlusCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 const formatCurrency = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
 const Retail = () => {
-  const [sales, setSales] = useLocalStorage<RetailSale[]>("thanvi_retail_sales", [...initialRetailData]);
+  const { sales, setSales } = useAppData();
   const [showAdd, setShowAdd] = useState(false);
 
   // Form state
@@ -24,7 +24,7 @@ const Retail = () => {
   const [discount, setDiscount] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<"DONE" | "PENDING">("DONE");
 
-  const currentTotal = sales.length > 0 ? sales[sales.length - 1].progressiveTotal : 0;
+  const currentTotal = sales.reduce((s, r) => s + r.totalAmount, 0);
   const pendingItems = sales.filter(r => r.paymentStatus === "PENDING");
   const pendingAmount = pendingItems.reduce((s, r) => s + r.totalAmount, 0);
 
@@ -43,10 +43,7 @@ const Retail = () => {
       date: formattedDate,
       shopName: shopName.trim().toUpperCase(),
       itemCode: itemCode.trim().toUpperCase() || "-",
-      qty: q,
-      sellingPrice: sp,
-      discount: disc,
-      totalAmount: total,
+      qty: q, sellingPrice: sp, discount: disc, totalAmount: total,
       paymentStatus,
       progressiveTotal: currentTotal + total,
     };
@@ -108,7 +105,6 @@ const Retail = () => {
         </table>
       </div>
 
-      {/* Add Retail Sale Dialog */}
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -147,9 +143,7 @@ const Retail = () => {
             <div>
               <Label className="font-semibold">Payment Status</Label>
               <Select value={paymentStatus} onValueChange={v => setPaymentStatus(v as "DONE" | "PENDING")}>
-                <SelectTrigger className="mt-1.5">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="DONE">Done</SelectItem>
                   <SelectItem value="PENDING">Pending</SelectItem>
@@ -158,9 +152,7 @@ const Retail = () => {
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="ghost" onClick={() => setShowAdd(false)}>Cancel</Button>
-              <Button onClick={handleAdd} disabled={!date || !shopName || !sellingPrice}>
-                Save Sale
-              </Button>
+              <Button onClick={handleAdd} disabled={!date || !shopName || !sellingPrice}>Save Sale</Button>
             </div>
           </div>
         </DialogContent>
