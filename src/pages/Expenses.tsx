@@ -1,6 +1,7 @@
 import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
-import { expensesData as initialExpenses, Expense, getTotalExpenses } from "@/data/expenses";
+import { expensesData as initialExpenses, Expense } from "@/data/expenses";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 import { PlusCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 const formatCurrency = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
 const Expenses = () => {
-  const [expenses, setExpenses] = useState<Expense[]>([...initialExpenses]);
+  const [expenses, setExpenses] = useLocalStorage<Expense[]>("thanvi_expenses", [...initialExpenses]);
   const [showAdd, setShowAdd] = useState(false);
 
   // Form state
