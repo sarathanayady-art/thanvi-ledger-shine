@@ -2,20 +2,21 @@ import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { RetailSale } from "@/data/retail";
 import { useAppData } from "@/hooks/use-app-data";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Pencil } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { sortByDateDesc, formatEntryDate } from "@/lib/date-utils";
 
 const formatCurrency = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
 const Retail = () => {
   const { sales, setSales } = useAppData();
   const [showAdd, setShowAdd] = useState(false);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
 
-  // Form state
   const [date, setDate] = useState("");
   const [shopName, setShopName] = useState("");
   const [itemCode, setItemCode] = useState("");
@@ -28,28 +29,68 @@ const Retail = () => {
   const pendingItems = sales.filter(r => r.paymentStatus === "PENDING");
   const pendingAmount = pendingItems.reduce((s, r) => s + r.totalAmount, 0);
 
-  const handleAdd = () => {
+  const sortedSales = [...sales].sort(sortByDateDesc);
+
+  const resetForm = () => {
+    setDate(""); setShopName(""); setItemCode(""); setQty(""); setSellingPrice(""); setDiscount(""); setPaymentStatus("DONE");
+  };
+
+  const openEdit = (sale: RetailSale, idx: number) => {
+    // Find original index in unsorted array
+    const origIdx = sales.indexOf(sale);
+    setEditIndex(origIdx);
+    // Parse date back to input format
+    const parts = sale.date.split(" ");
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const m = String(months.indexOf(parts[1]) + 1).padStart(2, "0");
+    setDate(`20${parts[2]}-${m}-${parts[0]}`);
+    setShopName(sale.shopName);
+    setItemCode(sale.itemCode === "-" ? "" : sale.itemCode);
+    setQty(String(sale.qty));
+    setSellingPrice(String(sale.sellingPrice));
+    setDiscount(String(sale.discount));
+    setPaymentStatus(sale.paymentStatus);
+    setShowAdd(true);
+  };
+
+  const handleSave = () => {
     if (!date || !shopName || !sellingPrice) return;
     const q = parseInt(qty) || 1;
     const sp = parseFloat(sellingPrice) || 0;
     const disc = parseFloat(discount) || 0;
     const total = (sp * q) - disc;
+    const formattedDate = formatEntryDate(new Date(date));
 
-    const d = new Date(date);
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const formattedDate = `${String(d.getDate()).padStart(2, "0")} ${months[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
+    if (editIndex !== null) {
+      setSales(prev => {
+        const updated = [...prev];
+        updated[editIndex] = {
+          ...updated[editIndex],
+          date: formattedDate,
+          shopName: shopName.trim().toUpperCase(),
+          itemCode: itemCode.trim().toUpperCase() || "-",
+          qty: q, sellingPrice: sp, discount: disc, totalAmount: total,
+          paymentStatus,
+          progressiveTotal: 0, // will recalc
+        };
+        // Recalculate progressive totals
+        let running = 0;
+        return updated.map(s => { running += s.totalAmount; return { ...s, progressiveTotal: running }; });
+      });
+    } else {
+      const newSale: RetailSale = {
+        date: formattedDate,
+        shopName: shopName.trim().toUpperCase(),
+        itemCode: itemCode.trim().toUpperCase() || "-",
+        qty: q, sellingPrice: sp, discount: disc, totalAmount: total,
+        paymentStatus,
+        progressiveTotal: currentTotal + total,
+      };
+      setSales(prev => [...prev, newSale]);
+    }
 
-    const newSale: RetailSale = {
-      date: formattedDate,
-      shopName: shopName.trim().toUpperCase(),
-      itemCode: itemCode.trim().toUpperCase() || "-",
-      qty: q, sellingPrice: sp, discount: disc, totalAmount: total,
-      paymentStatus,
-      progressiveTotal: currentTotal + total,
-    };
-
-    setSales(prev => [...prev, newSale]);
-    setDate(""); setShopName(""); setItemCode(""); setQty(""); setSellingPrice(""); setDiscount(""); setPaymentStatus("DONE");
+    resetForm();
+    setEditIndex(null);
     setShowAdd(false);
   };
 
@@ -62,7 +103,7 @@ const Retail = () => {
             Total: {formatCurrency(currentTotal)} · Pending: {formatCurrency(pendingAmount)} ({pendingItems.length} items)
           </p>
         </div>
-        <Button size="sm" onClick={() => setShowAdd(true)}>
+        <Button size="sm" onClick={() => { resetForm(); setEditIndex(null); setShowAdd(true); }}>
           <PlusCircle size={16} className="mr-2" />
           Add Sale
         </Button>
@@ -80,11 +121,11 @@ const Retail = () => {
               <th className="text-right">Discount</th>
               <th className="text-right">Total</th>
               <th>Status</th>
-              <th className="text-right">Running</th>
+              <th className="text-center">Edit</th>
             </tr>
           </thead>
           <tbody>
-            {sales.map((r, i) => (
+            {sortedSales.map((r, i) => (
               <tr key={i}>
                 <td className="text-sm whitespace-nowrap">{r.date}</td>
                 <td className="font-medium">{r.shopName}</td>
@@ -98,18 +139,22 @@ const Retail = () => {
                     {r.paymentStatus}
                   </span>
                 </td>
-                <td className="text-right amount-neutral">{formatCurrency(r.progressiveTotal)}</td>
+                <td className="text-center">
+                  <button onClick={() => openEdit(r, i)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Edit">
+                    <Pencil size={14} />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <Dialog open={showAdd} onOpenChange={setShowAdd}>
+      <Dialog open={showAdd} onOpenChange={(o) => { if (!o) { resetForm(); setEditIndex(null); } setShowAdd(o); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Retail Sale</DialogTitle>
-            <p className="text-sm text-muted-foreground">Record a new retail transaction</p>
+            <DialogTitle>{editIndex !== null ? "Edit Retail Sale" : "Add Retail Sale"}</DialogTitle>
+            <p className="text-sm text-muted-foreground">{editIndex !== null ? "Update this transaction" : "Record a new retail transaction"}</p>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <div>
@@ -151,8 +196,8 @@ const Retail = () => {
               </Select>
             </div>
             <div className="flex justify-end gap-3 pt-2">
-              <Button variant="ghost" onClick={() => setShowAdd(false)}>Cancel</Button>
-              <Button onClick={handleAdd} disabled={!date || !shopName || !sellingPrice}>Save Sale</Button>
+              <Button variant="ghost" onClick={() => { resetForm(); setEditIndex(null); setShowAdd(false); }}>Cancel</Button>
+              <Button onClick={handleSave} disabled={!date || !shopName || !sellingPrice}>{editIndex !== null ? "Update Sale" : "Save Sale"}</Button>
             </div>
           </div>
         </DialogContent>

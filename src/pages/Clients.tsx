@@ -2,17 +2,29 @@ import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { Client, Transaction } from "@/data/clients";
 import { useAppData } from "@/hooks/use-app-data";
-import { FileText, Download, PlusCircle, UserPlus } from "lucide-react";
+import { FileText, Download, PlusCircle, UserPlus, Pencil } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { sortByDateDesc, formatEntryDate } from "@/lib/date-utils";
 
 const formatCurrency = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
-const ClientLedger = ({ client, open, onClose }: { client: Client | null; open: boolean; onClose: () => void }) => {
+const dateToInput = (dateStr: string) => {
+  const parts = dateStr.split(" ");
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const m = String(months.indexOf(parts[1]) + 1).padStart(2, "0");
+  return `20${parts[2]}-${m}-${parts[0]}`;
+};
+
+const ClientLedger = ({ client, open, onClose, onEditTransaction }: { 
+  client: Client | null; open: boolean; onClose: () => void;
+  onEditTransaction: (client: Client, txIndex: number) => void;
+}) => {
   if (!client) return null;
+  const sortedTx = [...client.transactions].map((t, i) => ({ ...t, _origIdx: i })).sort(sortByDateDesc);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -56,11 +68,12 @@ const ClientLedger = ({ client, open, onClose }: { client: Client | null; open: 
               <th className="text-right">Sale</th>
               <th className="text-right">Collection</th>
               <th className="text-right">Balance</th>
+              <th className="text-center">Edit</th>
             </tr>
           </thead>
           <tbody>
-            {client.transactions.map((t, i) => (
-              <tr key={i}>
+            {sortedTx.map((t) => (
+              <tr key={t._origIdx}>
                 <td className="text-sm text-muted-foreground">{t.date}</td>
                 <td>
                   <span className="font-medium">
@@ -87,6 +100,11 @@ const ClientLedger = ({ client, open, onClose }: { client: Client | null; open: 
                   )}
                 </td>
                 <td className="text-right font-semibold">{formatCurrency(t.balance)}</td>
+                <td className="text-center">
+                  <button onClick={() => onEditTransaction(client, t._origIdx)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Edit">
+                    <Pencil size={14} />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -107,6 +125,24 @@ const Clients = () => {
   const [txAmount, setTxAmount] = useState("");
   const [txDate, setTxDate] = useState("");
   const [txDescription, setTxDescription] = useState("");
+  const [editTxIndex, setEditTxIndex] = useState<number | null>(null);
+
+  // Edit client name
+  const [editClientName, setEditClientName] = useState<string | null>(null);
+  const [editClientNewName, setEditClientNewName] = useState("");
+
+  const recalcClient = (c: Client): Client => {
+    let totalSale = 0, totalCollection = 0, balance = 0;
+    const updatedTx = c.transactions.map(t => {
+      if (t.type === "sale") { totalSale += t.amount; balance += t.amount; }
+      else if (t.type === "collection") { totalCollection += t.amount; balance -= t.amount; }
+      else if (t.type === "return") { totalSale -= t.amount; balance -= t.amount; }
+      return { ...t, balance: Math.max(0, balance) };
+    });
+    balance = Math.max(0, balance);
+    const balancePercent = totalSale > 0 ? (balance / totalSale) * 100 : 0;
+    return { ...c, transactions: updatedTx, totalSale, totalCollection, balance, balancePercent };
+  };
 
   const handleAddClient = () => {
     if (!newClientName.trim()) return;
@@ -119,42 +155,49 @@ const Clients = () => {
     setShowAddClient(false);
   };
 
-  const handleAddTransaction = () => {
+  const openEditTransaction = (client: Client, txIdx: number) => {
+    const tx = client.transactions[txIdx];
+    setShowAddTransaction(client);
+    setEditTxIndex(txIdx);
+    setTxType(tx.type);
+    setTxAmount(String(tx.amount));
+    setTxDate(dateToInput(tx.date));
+    setTxDescription(tx.description || "");
+    setSelectedClient(null);
+  };
+
+  const handleSaveTransaction = () => {
     if (!showAddTransaction || !txAmount || !txDate) return;
     const amount = parseFloat(txAmount);
     if (isNaN(amount) || amount <= 0) return;
-
-    const client = showAddTransaction;
-    const lastBalance = client.transactions.length > 0
-      ? client.transactions[client.transactions.length - 1].balance : 0;
-
-    let newBalance = lastBalance;
-    if (txType === "sale") newBalance += amount;
-    else if (txType === "collection") newBalance -= amount;
-    else if (txType === "return") newBalance -= amount;
-
-    const d = new Date(txDate);
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const formattedDate = `${String(d.getDate()).padStart(2, "0")} ${months[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
-
-    const newTx: Transaction = {
-      date: formattedDate, type: txType, amount, balance: Math.max(0, newBalance),
-      description: txDescription || undefined,
-    };
+    const formattedDate = formatEntryDate(new Date(txDate));
+    const clientName = showAddTransaction.name;
 
     setClients(prev =>
       prev.map(c => {
-        if (c.name !== client.name) return c;
-        const updatedTransactions = [...c.transactions, newTx];
-        const totalSale = txType === "sale" ? c.totalSale + amount : (txType === "return" ? c.totalSale - amount : c.totalSale);
-        const totalCollection = txType === "collection" ? c.totalCollection + amount : c.totalCollection;
-        const balance = Math.max(0, newBalance);
-        const balancePercent = totalSale > 0 ? (balance / totalSale) * 100 : 0;
-        return { ...c, transactions: updatedTransactions, totalSale, totalCollection, balance, balancePercent };
+        if (c.name !== clientName) return c;
+
+        let updatedTransactions: Transaction[];
+        if (editTxIndex !== null) {
+          updatedTransactions = [...c.transactions];
+          updatedTransactions[editTxIndex] = {
+            date: formattedDate, type: txType, amount, balance: 0,
+            description: txDescription || undefined,
+          };
+        } else {
+          const newTx: Transaction = {
+            date: formattedDate, type: txType, amount, balance: 0,
+            description: txDescription || undefined,
+          };
+          updatedTransactions = [...c.transactions, newTx];
+        }
+
+        return recalcClient({ ...c, transactions: updatedTransactions });
       })
     );
 
     setTxAmount(""); setTxDate(""); setTxDescription(""); setTxType("sale");
+    setEditTxIndex(null);
     setShowAddTransaction(null);
   };
 
@@ -217,7 +260,7 @@ const Clients = () => {
                 </td>
                 <td className="text-center">
                   <div className="flex items-center justify-center gap-1">
-                    <button onClick={() => setShowAddTransaction(c)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Add Transaction">
+                    <button onClick={() => { setShowAddTransaction(c); setEditTxIndex(null); setTxAmount(""); setTxDate(""); setTxDescription(""); setTxType("sale"); }} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Add Transaction">
                       <PlusCircle size={16} />
                     </button>
                     {c.transactions.length > 0 && (
@@ -236,7 +279,7 @@ const Clients = () => {
               <td className="text-right amount-negative">{formatCurrency(clients.reduce((s, c) => s + c.balance, 0))}</td>
               <td className="text-right">
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-destructive/10 text-destructive">
-                  {((clients.reduce((s, c) => s + c.balance, 0) / clients.reduce((s, c) => s + c.totalSale, 0)) * 100).toFixed(1)}%
+                  {((clients.reduce((s, c) => s + c.balance, 0) / (clients.reduce((s, c) => s + c.totalSale, 0) || 1)) * 100).toFixed(1)}%
                 </span>
               </td>
               <td></td>
@@ -245,7 +288,7 @@ const Clients = () => {
         </table>
       </div>
 
-      <ClientLedger client={selectedClient} open={!!selectedClient} onClose={() => setSelectedClient(null)} />
+      <ClientLedger client={selectedClient} open={!!selectedClient} onClose={() => setSelectedClient(null)} onEditTransaction={openEditTransaction} />
 
       <Dialog open={showAddClient} onOpenChange={setShowAddClient}>
         <DialogContent className="max-w-md">
@@ -262,12 +305,12 @@ const Clients = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!showAddTransaction} onOpenChange={() => setShowAddTransaction(null)}>
+      <Dialog open={!!showAddTransaction} onOpenChange={() => { setShowAddTransaction(null); setEditTxIndex(null); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Transaction</DialogTitle>
+            <DialogTitle>{editTxIndex !== null ? "Edit Transaction" : "Add Transaction"}</DialogTitle>
             <p className="text-sm text-muted-foreground">
-              Record a new entry for <span className="font-bold text-foreground">{showAddTransaction?.name}</span>
+              {editTxIndex !== null ? "Update entry for" : "Record a new entry for"} <span className="font-bold text-foreground">{showAddTransaction?.name}</span>
             </p>
           </DialogHeader>
           <div className="space-y-4 mt-2">
@@ -295,8 +338,8 @@ const Clients = () => {
               <Input id="txDesc" value={txDescription} onChange={e => setTxDescription(e.target.value)} placeholder="e.g. Weekly Payment, Bulk Order" className="mt-1.5" />
             </div>
             <div className="flex justify-end gap-3 pt-2">
-              <Button variant="ghost" onClick={() => setShowAddTransaction(null)}>Cancel</Button>
-              <Button onClick={handleAddTransaction} disabled={!txAmount || !txDate}>Save Transaction</Button>
+              <Button variant="ghost" onClick={() => { setShowAddTransaction(null); setEditTxIndex(null); }}>Cancel</Button>
+              <Button onClick={handleSaveTransaction} disabled={!txAmount || !txDate}>{editTxIndex !== null ? "Update Transaction" : "Save Transaction"}</Button>
             </div>
           </div>
         </DialogContent>

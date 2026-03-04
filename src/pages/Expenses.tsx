@@ -2,18 +2,20 @@ import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { Expense } from "@/data/expenses";
 import { useAppData } from "@/hooks/use-app-data";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Pencil } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { sortByDateDesc, formatEntryDate } from "@/lib/date-utils";
 
 const formatCurrency = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
 const Expenses = () => {
   const { expenses, setExpenses } = useAppData();
   const [showAdd, setShowAdd] = useState(false);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
 
   const [date, setDate] = useState("");
   const [description, setDescription] = useState("");
@@ -22,22 +24,52 @@ const Expenses = () => {
 
   const grandTotal = expenses.length > 0 ? expenses[expenses.length - 1].runningTotal : 0;
 
-  const handleAdd = () => {
+  const sortedExpenses = [...expenses].sort(sortByDateDesc);
+
+  const resetForm = () => {
+    setDate(""); setDescription(""); setAmount(""); setPaidBy("SPV");
+  };
+
+  const openEdit = (exp: Expense) => {
+    const origIdx = expenses.indexOf(exp);
+    setEditIndex(origIdx);
+    const parts = exp.date.split(" ");
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const m = String(months.indexOf(parts[1]) + 1).padStart(2, "0");
+    setDate(`20${parts[2]}-${m}-${parts[0]}`);
+    setDescription(exp.description);
+    setAmount(String(exp.amount));
+    setPaidBy(exp.paidBy);
+    setShowAdd(true);
+  };
+
+  const recalcRunningTotals = (list: Expense[]): Expense[] => {
+    let running = 0;
+    return list.map(e => { running += e.amount; return { ...e, runningTotal: running }; });
+  };
+
+  const handleSave = () => {
     if (!date || !description || !amount) return;
     const amt = parseFloat(amount);
     if (isNaN(amt)) return;
+    const formattedDate = formatEntryDate(new Date(date));
 
-    const d = new Date(date);
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const formattedDate = `${String(d.getDate()).padStart(2, "0")} ${months[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
+    if (editIndex !== null) {
+      setExpenses(prev => {
+        const updated = [...prev];
+        updated[editIndex] = { ...updated[editIndex], date: formattedDate, description: description.trim(), amount: amt, paidBy };
+        return recalcRunningTotals(updated);
+      });
+    } else {
+      const newExpense: Expense = {
+        date: formattedDate, description: description.trim(), amount: amt, paidBy,
+        runningTotal: grandTotal + amt,
+      };
+      setExpenses(prev => [...prev, newExpense]);
+    }
 
-    const newExpense: Expense = {
-      date: formattedDate, description: description.trim(), amount: amt, paidBy,
-      runningTotal: grandTotal + amt,
-    };
-
-    setExpenses(prev => [...prev, newExpense]);
-    setDate(""); setDescription(""); setAmount(""); setPaidBy("SPV");
+    resetForm();
+    setEditIndex(null);
     setShowAdd(false);
   };
 
@@ -48,7 +80,7 @@ const Expenses = () => {
           <h1 className="page-header">Expenses</h1>
           <p className="page-subtitle">Grand Total: {formatCurrency(grandTotal)}</p>
         </div>
-        <Button size="sm" onClick={() => setShowAdd(true)}>
+        <Button size="sm" onClick={() => { resetForm(); setEditIndex(null); setShowAdd(true); }}>
           <PlusCircle size={16} className="mr-2" />
           Add Expense
         </Button>
@@ -63,10 +95,11 @@ const Expenses = () => {
               <th className="text-right">Amount</th>
               <th>Paid By</th>
               <th className="text-right">Running Total</th>
+              <th className="text-center">Edit</th>
             </tr>
           </thead>
           <tbody>
-            {expenses.map((e, i) => (
+            {sortedExpenses.map((e, i) => (
               <tr key={i}>
                 <td className="text-sm whitespace-nowrap">{e.date}</td>
                 <td className="font-medium">{e.description}</td>
@@ -83,17 +116,22 @@ const Expenses = () => {
                   </span>
                 </td>
                 <td className="text-right amount-neutral">{formatCurrency(e.runningTotal)}</td>
+                <td className="text-center">
+                  <button onClick={() => openEdit(e)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Edit">
+                    <Pencil size={14} />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <Dialog open={showAdd} onOpenChange={setShowAdd}>
+      <Dialog open={showAdd} onOpenChange={(o) => { if (!o) { resetForm(); setEditIndex(null); } setShowAdd(o); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Expense</DialogTitle>
-            <p className="text-sm text-muted-foreground">Record a new business expense</p>
+            <DialogTitle>{editIndex !== null ? "Edit Expense" : "Add Expense"}</DialogTitle>
+            <p className="text-sm text-muted-foreground">{editIndex !== null ? "Update this expense entry" : "Record a new business expense"}</p>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <div>
@@ -102,7 +140,7 @@ const Expenses = () => {
             </div>
             <div>
               <Label className="font-semibold">Amount (₹)</Label>
-              <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Enter amount" className="mt-1.5" />
+              <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Enter amount (negative for deductions)" className="mt-1.5" />
             </div>
             <div>
               <Label className="font-semibold">Date</Label>
@@ -120,8 +158,8 @@ const Expenses = () => {
               </Select>
             </div>
             <div className="flex justify-end gap-3 pt-2">
-              <Button variant="ghost" onClick={() => setShowAdd(false)}>Cancel</Button>
-              <Button onClick={handleAdd} disabled={!date || !description || !amount}>Save Expense</Button>
+              <Button variant="ghost" onClick={() => { resetForm(); setEditIndex(null); setShowAdd(false); }}>Cancel</Button>
+              <Button onClick={handleSave} disabled={!date || !description || !amount}>{editIndex !== null ? "Update Expense" : "Save Expense"}</Button>
             </div>
           </div>
         </DialogContent>

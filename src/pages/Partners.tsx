@@ -1,23 +1,30 @@
 import AppLayout from "@/components/AppLayout";
 import { useAppData } from "@/hooks/use-app-data";
+import { sortByDateDesc } from "@/lib/date-utils";
 
 const formatCurrency = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
 const Partners = () => {
-  const { partners, shares, totalCollection, retailTotal, totalSharesTaken, currentBalance } = useAppData();
+  const { partners, shares, totalCollection, retailTotal, expensesTotal, totalSharesTaken, currentBalance } = useAppData();
 
-  // Group share history by date
+  // Group share history by date, sorted latest first
   const dateGroups: Record<string, typeof shares> = {};
   shares.forEach(s => {
     if (!dateGroups[s.date]) dateGroups[s.date] = [];
     dateGroups[s.date].push(s);
   });
 
+  const sortedDates = Object.keys(dateGroups).sort((a, b) => {
+    const dummyA = { date: a };
+    const dummyB = { date: b };
+    return sortByDateDesc(dummyA, dummyB);
+  });
+
   return (
     <AppLayout>
       <div className="mb-8">
         <h1 className="page-header">Partner Distributions</h1>
-        <p className="page-subtitle">Vishnu & Sarath — Equal split of collections</p>
+        <p className="page-subtitle">Vishnu & Sarath — Equal split of collections (derived from Expense "Collection Sharing" entries)</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
@@ -29,7 +36,7 @@ const Partners = () => {
         <div className="stat-card border-l-4 border-l-accent">
           <p className="text-xs font-medium text-muted-foreground uppercase">Total Shares Taken</p>
           <p className="text-2xl font-bold mt-1 font-mono">{formatCurrency(totalSharesTaken)}</p>
-          <p className="text-xs text-muted-foreground mt-1">Across {Object.keys(dateGroups).length} distributions</p>
+          <p className="text-xs text-muted-foreground mt-1">Across {sortedDates.length} distributions</p>
         </div>
         <div className="stat-card border-l-4 border-l-warning">
           <p className="text-xs font-medium text-muted-foreground uppercase">Current Balance</p>
@@ -50,22 +57,25 @@ const Partners = () => {
             </tr>
           </thead>
           <tbody>
-            {Object.entries(dateGroups).map(([date, dateShares]) => (
-              <tr key={date}>
-                <td className="font-medium">{date}</td>
-                {partners.map(p => {
-                  const s = dateShares.find(sh => sh.partner === p.name);
-                  return (
-                    <td key={p.name} className="text-right amount-neutral">
-                      {s ? formatCurrency(s.amount) : "—"}
-                    </td>
-                  );
-                })}
-                <td className="text-right amount-neutral font-bold">
-                  {formatCurrency(dateShares.reduce((sum, s) => sum + s.amount, 0))}
-                </td>
-              </tr>
-            ))}
+            {sortedDates.map(date => {
+              const dateShares = dateGroups[date];
+              return (
+                <tr key={date}>
+                  <td className="font-medium">{date}</td>
+                  {partners.map(p => {
+                    const s = dateShares.find(sh => sh.partner === p.name);
+                    return (
+                      <td key={p.name} className="text-right amount-neutral">
+                        {s ? formatCurrency(s.amount) : "—"}
+                      </td>
+                    );
+                  })}
+                  <td className="text-right amount-neutral font-bold">
+                    {formatCurrency(dateShares.reduce((sum, s) => sum + s.amount, 0))}
+                  </td>
+                </tr>
+              );
+            })}
             <tr className="font-bold bg-muted/30">
               <td>TOTAL</td>
               {partners.map(p => (
@@ -79,7 +89,6 @@ const Partners = () => {
         </table>
       </div>
 
-      {/* Cash flow summary */}
       <div className="stat-card">
         <h3 className="font-semibold mb-4">Cash Flow Summary</h3>
         <div className="space-y-3">
