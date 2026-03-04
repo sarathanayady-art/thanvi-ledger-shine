@@ -22,8 +22,20 @@ export function useAppData() {
   // Computed expenses total
   const expensesTotal = expenses.length > 0 ? expenses[expenses.length - 1].runningTotal : 0;
 
+  // Derive partner shares from "Collection Sharing" expenses + standalone shares
+  const expenseShares: PartnerShare[] = expenses
+    .filter(e => e.description.toLowerCase().includes("collection sharing") && e.amount < 0)
+    .map(e => ({
+      date: e.date,
+      partner: e.paidBy === "VISH" ? "VISHNU" : e.paidBy === "SPV" ? "SARATH" : e.paidBy,
+      amount: Math.abs(e.amount),
+    }));
+
+  // Use expense-derived shares if they exist, otherwise fall back to standalone shares
+  const effectiveShares = expenseShares.length > 0 ? expenseShares : shares;
+
   // Computed partner data
-  const totalSharesTaken = shares.reduce((s, sh) => s + sh.amount, 0);
+  const totalSharesTaken = effectiveShares.reduce((s, sh) => s + sh.amount, 0);
   const currentBalance = totalCollection + retailTotal - totalSharesTaken;
 
   const totalClients = clients.length;
@@ -33,7 +45,7 @@ export function useAppData() {
     clients, setClients,
     sales, setSales,
     expenses, setExpenses,
-    shares, setShares,
+    shares: effectiveShares, setShares,
     partners,
     // Computed
     totalSale,
