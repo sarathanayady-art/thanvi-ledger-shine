@@ -24,7 +24,7 @@ const ClientLedger = ({ client, open, onClose, onEditTransaction }: {
   onEditTransaction: (client: Client, txIndex: number) => void;
 }) => {
   if (!client) return null;
-  const sortedTx = [...client.transactions].map((t, i) => ({ ...t, _origIdx: i })).sort(sortByDateDesc);
+  const sortedTx = [...client.transactions].map((t, i) => ({ ...t, _origIdx: i })).sort((a, b) => sortByDateDesc(b, a));
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
