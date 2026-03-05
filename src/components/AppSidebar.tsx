@@ -25,10 +25,10 @@ const AppTopBar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-[hsl(var(--sidebar-background))] text-[hsl(var(--sidebar-foreground))] shadow-md">
+    <header className="sticky top-0 z-50 w-full bg-gradient-to-r from-[hsl(252,40%,14%)] to-[hsl(252,35%,20%)] text-[hsl(var(--sidebar-foreground))] shadow-lg">
       <div className="flex items-center justify-between px-5 h-14">
         <div className="flex items-center gap-2">
-          <h1 className="text-lg font-bold text-[hsl(var(--sidebar-primary))]">E-Ledger</h1>
+          <h1 className="text-lg font-bold font-display bg-gradient-to-r from-[hsl(172,66%,55%)] to-[hsl(252,85%,70%)] bg-clip-text text-transparent">E-Ledger</h1>
           <span className="hidden sm:inline text-xs text-[hsl(var(--sidebar-foreground)/0.5)] ml-1">Thanvi Collections</span>
         </div>
 

@@ -20,9 +20,9 @@ const StatCard = ({ title, value, subtitle, icon, variant = "default" }: StatCar
     <div className={`stat-card border-l-4 ${variantStyles[variant]}`}>
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{title}</p>
-          <p className="text-2xl font-bold mt-1 font-mono">{value}</p>
-          {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">{title}</p>
+          <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{value}</p>
+          {subtitle && <p className="text-xs text-muted-foreground mt-1.5">{subtitle}</p>}
         </div>
         <div className="p-2 rounded-lg bg-muted text-muted-foreground">
           {icon}

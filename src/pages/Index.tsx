@@ -35,7 +35,7 @@ const Dashboard = () => {
   return (
     <AppLayout>
       <div className="mb-8">
-        <h1 className="page-header">Dashboard</h1>
+        <h1 className="page-header font-display bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Dashboard</h1>
         <p className="page-subtitle">Financial overview — Thanvi Collections</p>
       </div>
 
