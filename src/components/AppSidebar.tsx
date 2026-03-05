@@ -6,6 +6,7 @@ import {
   Receipt,
   FileBarChart,
   Split,
+  Package,
   Menu,
   X,
 } from "lucide-react";
@@ -17,6 +18,7 @@ const navItems = [
   { to: "/retail", icon: ShoppingBag, label: "Retail" },
   { to: "/expenses", icon: Receipt, label: "Expenses" },
   { to: "/partners", icon: Split, label: "Partners" },
+  { to: "/stock", icon: Package, label: "Stock" },
   { to: "/reports", icon: FileBarChart, label: "Reports" },
 ];
 
