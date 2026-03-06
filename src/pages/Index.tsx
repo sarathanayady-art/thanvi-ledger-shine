@@ -1,7 +1,7 @@
 import AppLayout from "@/components/AppLayout";
 import StatCard from "@/components/StatCard";
 import { useAppData } from "@/hooks/use-app-data";
-import { IndianRupee, TrendingUp, TrendingDown, Wallet, Users, ShoppingBag } from "lucide-react";
+import { IndianRupee, TrendingUp, TrendingDown, Wallet, Users, ShoppingBag, Package, PackageMinus } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 const formatCurrency = (n: number) => `₹${n.toLocaleString("en-IN")}`;
@@ -11,6 +11,7 @@ const Dashboard = () => {
     clients, totalSale, totalCollection, totalBalance,
     overallBalancePercent, retailTotal, expensesTotal,
     currentBalance, totalClients, pendingClients,
+    stockTotal, stockSoldOut, stockRemaining,
   } = useAppData();
 
   // Monthly data from live clients
@@ -116,6 +117,20 @@ const Dashboard = () => {
                 <span className="text-sm">Total Expenses</span>
               </div>
               <span className="font-bold font-mono">{formatCurrency(expensesTotal)}</span>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              <div className="flex items-center gap-2">
+                <Package size={16} className="text-primary" />
+                <span className="text-sm">Stock Items</span>
+              </div>
+              <span className="font-bold font-mono">{stockTotal} <span className="text-xs text-muted-foreground">({stockRemaining} remaining)</span></span>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              <div className="flex items-center gap-2">
+                <PackageMinus size={16} className="text-destructive" />
+                <span className="text-sm">Sold Out Items</span>
+              </div>
+              <span className="font-bold font-mono">{stockSoldOut}</span>
             </div>
           </div>
         </div>

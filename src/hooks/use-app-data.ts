@@ -3,12 +3,19 @@ import { clientsData as initialClients, Client } from "@/data/clients";
 import { retailSalesData as initialRetail, RetailSale } from "@/data/retail";
 import { expensesData as initialExpenses, Expense } from "@/data/expenses";
 import { shareHistory as initialShares, PartnerShare, partners } from "@/data/partners";
+import { defaultStock, StockItem } from "@/data/stock";
 
 export function useAppData() {
   const [clients, setClients] = useLocalStorage<Client[]>("thanvi_clients", [...initialClients]);
   const [sales, setSales] = useLocalStorage<RetailSale[]>("thanvi_retail_sales", [...initialRetail]);
   const [expenses, setExpenses] = useLocalStorage<Expense[]>("thanvi_expenses", [...initialExpenses]);
   const [shares, setShares] = useLocalStorage<PartnerShare[]>("thanvi_shares", [...initialShares]);
+  const [stock] = useLocalStorage<StockItem[]>("tc_stock", defaultStock);
+
+  // Stock stats
+  const stockTotal = stock.length;
+  const stockSoldOut = stock.filter(s => s.remaining === 0 && s.purchased > 0).length;
+  const stockRemaining = stock.reduce((s, i) => s + i.remaining, 0);
 
   // Computed client totals
   const totalSale = clients.reduce((s, c) => s + c.totalSale, 0);
@@ -58,5 +65,8 @@ export function useAppData() {
     currentBalance,
     totalClients,
     pendingClients,
+    stockTotal,
+    stockSoldOut,
+    stockRemaining,
   };
 }
