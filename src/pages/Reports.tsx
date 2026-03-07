@@ -106,7 +106,84 @@ const Reports = () => {
         <p className="page-subtitle">Financial analysis and insights</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
+      {/* Profit Analysis */}
+      <div className="stat-card mb-8">
+        <h3 className="font-semibold mb-5 flex items-center gap-2">
+          <TrendingUp className="h-5 w-5 text-primary" />
+          Profit Analysis from Sales
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="p-4 rounded-lg bg-muted/40 border border-border">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Total Revenue</p>
+            <p className="text-xl font-bold mt-1 font-mono text-foreground">{formatCurrency(totalRevenue)}</p>
+            <p className="text-xs text-muted-foreground mt-1">Clients + Retail</p>
+          </div>
+          <div className="p-4 rounded-lg bg-muted/40 border border-border">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Cost of Goods</p>
+            <p className="text-xl font-bold mt-1 font-mono text-destructive">{formatCurrency(cogs)}</p>
+            <p className="text-xs text-muted-foreground mt-1">Purchase cost of sold items</p>
+          </div>
+          <div className="p-4 rounded-lg bg-muted/40 border border-border">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Gross Profit</p>
+            <p className={`text-xl font-bold mt-1 font-mono ${grossProfit >= 0 ? "text-[hsl(var(--success))]" : "text-destructive"}`}>
+              {grossProfit >= 0 ? formatCurrency(grossProfit) : `-${formatCurrency(Math.abs(grossProfit))}`}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Margin: {profitMargin.toFixed(1)}%</p>
+          </div>
+          <div className="p-4 rounded-lg bg-muted/40 border border-border">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Unsold Stock Value</p>
+            <p className="text-xl font-bold mt-1 font-mono text-foreground">
+              {formatCurrency(defaultStock.reduce((t, i) => t + i.remaining * (purchasePriceMap[i.name] || 0), 0))}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">At purchase cost</p>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Channel</th>
+                <th className="text-right">Revenue</th>
+                <th className="text-right">Cost (COGS)</th>
+                <th className="text-right">Profit</th>
+                <th className="text-right">Margin %</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="font-medium">Client (Wholesale)</td>
+                <td className="text-right amount-neutral">{formatCurrency(totalSale)}</td>
+                <td className="text-right amount-negative">{formatCurrency(clientCogs)}</td>
+                <td className={`text-right font-bold font-mono ${clientProfit >= 0 ? "text-[hsl(var(--success))]" : "text-destructive"}`}>
+                  {formatCurrency(clientProfit)}
+                </td>
+                <td className="text-right font-mono">{totalSale > 0 ? ((clientProfit / totalSale) * 100).toFixed(1) : "0.0"}%</td>
+              </tr>
+              <tr>
+                <td className="font-medium">Retail (Direct)</td>
+                <td className="text-right amount-neutral">{formatCurrency(retailTotal)}</td>
+                <td className="text-right amount-negative">{formatCurrency(retailCogs)}</td>
+                <td className={`text-right font-bold font-mono ${retailProfit >= 0 ? "text-[hsl(var(--success))]" : "text-destructive"}`}>
+                  {formatCurrency(retailProfit)}
+                </td>
+                <td className="text-right font-mono">{retailTotal > 0 ? ((retailProfit / retailTotal) * 100).toFixed(1) : "0.0"}%</td>
+              </tr>
+              <tr className="font-bold bg-muted/30">
+                <td>TOTAL</td>
+                <td className="text-right amount-neutral">{formatCurrency(totalRevenue)}</td>
+                <td className="text-right amount-negative">{formatCurrency(cogs)}</td>
+                <td className={`text-right font-bold font-mono ${grossProfit >= 0 ? "text-[hsl(var(--success))]" : "text-destructive"}`}>
+                  {formatCurrency(grossProfit)}
+                </td>
+                <td className="text-right font-mono">{profitMargin.toFixed(1)}%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      
         <div className="stat-card">
           <h3 className="font-semibold mb-4">Collection Efficiency by Month</h3>
           <ResponsiveContainer width="100%" height={280}>
