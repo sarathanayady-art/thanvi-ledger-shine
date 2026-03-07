@@ -1,6 +1,8 @@
 import AppLayout from "@/components/AppLayout";
 import { useAppData } from "@/hooks/use-app-data";
+import { purchaseEntries, pricingData, defaultStock } from "@/data/stock";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { TrendingUp, TrendingDown, IndianRupee, Package } from "lucide-react";
 
 const formatCurrency = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
