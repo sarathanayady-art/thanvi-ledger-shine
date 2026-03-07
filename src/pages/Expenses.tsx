@@ -24,6 +24,10 @@ const Expenses = () => {
 
   const grandTotal = expenses.length > 0 ? expenses[expenses.length - 1].runningTotal : 0;
 
+  const petrolTotal = expenses.filter(e => e.description.toLowerCase().includes("petrol") && e.amount > 0).reduce((s, e) => s + e.amount, 0);
+  const rentTotal = expenses.filter(e => (e.description.toLowerCase().includes("rent") || e.description.toLowerCase().includes("shop rent")) && e.amount > 0).reduce((s, e) => s + e.amount, 0);
+  const purchaseTotal = expenses.filter(e => e.description.toLowerCase().includes("purchase") && !e.description.toLowerCase().includes("stationary") && e.amount > 0).reduce((s, e) => s + e.amount, 0);
+
   const sortedExpenses = [...expenses].sort(sortByDateDesc);
 
   const resetForm = () => {
