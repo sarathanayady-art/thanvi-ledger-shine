@@ -90,6 +90,45 @@ const Expenses = () => {
         </Button>
       </div>
 
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="stat-card border-l-4 border-l-primary">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Grand Total</p>
+              <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(grandTotal)}</p>
+            </div>
+            <div className="p-2 rounded-lg bg-muted text-muted-foreground"><IndianRupee size={18} /></div>
+          </div>
+        </div>
+        <div className="stat-card border-l-4 border-l-warning">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Petrol</p>
+              <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(petrolTotal)}</p>
+            </div>
+            <div className="p-2 rounded-lg bg-muted text-muted-foreground"><Fuel size={18} /></div>
+          </div>
+        </div>
+        <div className="stat-card border-l-4 border-l-success">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Rent</p>
+              <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(rentTotal)}</p>
+            </div>
+            <div className="p-2 rounded-lg bg-muted text-muted-foreground"><Home size={18} /></div>
+          </div>
+        </div>
+        <div className="stat-card border-l-4 border-l-destructive">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Total Purchase</p>
+              <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(purchaseTotal)}</p>
+            </div>
+            <div className="p-2 rounded-lg bg-muted text-muted-foreground"><ShoppingBag size={18} /></div>
+          </div>
+        </div>
+      </div>
+
       <div className="stat-card overflow-x-auto">
         <table className="data-table">
           <thead>
