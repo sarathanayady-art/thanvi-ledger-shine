@@ -183,7 +183,7 @@ const Reports = () => {
         </div>
       </div>
 
-      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
         <div className="stat-card">
           <h3 className="font-semibold mb-4">Collection Efficiency by Month</h3>
           <ResponsiveContainer width="100%" height={280}>
