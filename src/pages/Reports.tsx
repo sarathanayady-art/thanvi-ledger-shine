@@ -13,7 +13,38 @@ const parseMonth = (dateStr: string) => {
 };
 
 const Reports = () => {
-  const { clients, sales, expenses } = useAppData();
+  const { clients, sales, expenses, totalSale, retailTotal } = useAppData();
+
+  // ─── Profit Calculation ───
+  // Build purchase price map: itemCode → unitPrice
+  const purchasePriceMap: Record<string, number> = {};
+  purchaseEntries.forEach(p => {
+    if (!purchasePriceMap[p.itemCode]) purchasePriceMap[p.itemCode] = p.unitPrice;
+  });
+
+  // Calculate COGS from stock sold quantities
+  const cogs = defaultStock.reduce((total, item) => {
+    const costPrice = purchasePriceMap[item.name] || 0;
+    return total + (item.sale * costPrice);
+  }, 0);
+
+  // Revenue: client wholesale sales + retail sales
+  const totalRevenue = totalSale + retailTotal;
+
+  // Gross Profit
+  const grossProfit = totalRevenue - cogs;
+  const profitMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+
+  // Retail profit breakdown
+  const retailCogs = sales.reduce((total, s) => {
+    const costPrice = purchasePriceMap[s.itemCode] || 0;
+    return total + (s.qty * costPrice);
+  }, 0);
+  const retailProfit = retailTotal - retailCogs;
+
+  // Client/wholesale profit
+  const clientCogs = cogs - retailCogs;
+  const clientProfit = totalSale - clientCogs;
 
   const getMonthlyBalanceSheet = () => {
     const months: Record<string, { sales: number; collections: number; expenses: number; retail: number }> = {};
