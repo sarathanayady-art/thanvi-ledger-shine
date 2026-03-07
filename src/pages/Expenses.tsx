@@ -2,7 +2,7 @@ import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { Expense } from "@/data/expenses";
 import { useAppData } from "@/hooks/use-app-data";
-import { PlusCircle, Pencil } from "lucide-react";
+import { PlusCircle, Pencil, Fuel, Home, ShoppingBag, IndianRupee } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
