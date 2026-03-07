@@ -2,7 +2,7 @@ import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { Expense } from "@/data/expenses";
 import { useAppData } from "@/hooks/use-app-data";
-import { PlusCircle, Pencil } from "lucide-react";
+import { PlusCircle, Pencil, Fuel, Home, ShoppingBag, IndianRupee } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,10 @@ const Expenses = () => {
   const [paidBy, setPaidBy] = useState("SPV");
 
   const grandTotal = expenses.length > 0 ? expenses[expenses.length - 1].runningTotal : 0;
+
+  const petrolTotal = expenses.filter(e => e.description.toLowerCase().includes("petrol") && e.amount > 0).reduce((s, e) => s + e.amount, 0);
+  const rentTotal = expenses.filter(e => (e.description.toLowerCase().includes("rent") || e.description.toLowerCase().includes("shop rent")) && e.amount > 0).reduce((s, e) => s + e.amount, 0);
+  const purchaseTotal = expenses.filter(e => e.description.toLowerCase().includes("purchase") && !e.description.toLowerCase().includes("stationary") && e.amount > 0).reduce((s, e) => s + e.amount, 0);
 
   const sortedExpenses = [...expenses].sort(sortByDateDesc);
 
@@ -84,6 +88,45 @@ const Expenses = () => {
           <PlusCircle size={16} className="mr-2" />
           Add Expense
         </Button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="stat-card border-l-4 border-l-primary">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Grand Total</p>
+              <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(grandTotal)}</p>
+            </div>
+            <div className="p-2 rounded-lg bg-muted text-muted-foreground"><IndianRupee size={18} /></div>
+          </div>
+        </div>
+        <div className="stat-card border-l-4 border-l-warning">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Petrol</p>
+              <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(petrolTotal)}</p>
+            </div>
+            <div className="p-2 rounded-lg bg-muted text-muted-foreground"><Fuel size={18} /></div>
+          </div>
+        </div>
+        <div className="stat-card border-l-4 border-l-success">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Rent</p>
+              <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(rentTotal)}</p>
+            </div>
+            <div className="p-2 rounded-lg bg-muted text-muted-foreground"><Home size={18} /></div>
+          </div>
+        </div>
+        <div className="stat-card border-l-4 border-l-destructive">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Total Purchase</p>
+              <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(purchaseTotal)}</p>
+            </div>
+            <div className="p-2 rounded-lg bg-muted text-muted-foreground"><ShoppingBag size={18} /></div>
+          </div>
+        </div>
       </div>
 
       <div className="stat-card overflow-x-auto">
