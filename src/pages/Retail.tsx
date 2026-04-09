@@ -13,7 +13,7 @@ import { sortByDateDesc, formatEntryDate } from "@/lib/date-utils";
 const formatCurrency = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
 const Retail = () => {
-  const { sales, setSales } = useAppData();
+  const { sales, setSales, addRetailSale, updateRetailSale } = useAppData();
   const [showAdd, setShowAdd] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
 
@@ -62,21 +62,17 @@ const Retail = () => {
     const formattedDate = formatEntryDate(new Date(date));
 
     if (editIndex !== null) {
-      setSales(prev => {
-        const updated = [...prev];
-        updated[editIndex] = {
-          ...updated[editIndex],
-          date: formattedDate,
-          shopName: shopName.trim().toUpperCase(),
-          itemCode: itemCode.trim().toUpperCase() || "-",
-          qty: q, sellingPrice: sp, discount: disc, totalAmount: total,
-          paymentStatus,
-          progressiveTotal: 0, // will recalc
-        };
-        // Recalculate progressive totals
-        let running = 0;
-        return updated.map(s => { running += s.totalAmount; return { ...s, progressiveTotal: running }; });
-      });
+      const oldSale = sales[editIndex];
+      const newSale: RetailSale = {
+        ...oldSale,
+        date: formattedDate,
+        shopName: shopName.trim().toUpperCase(),
+        itemCode: itemCode.trim().toUpperCase() || "-",
+        qty: q, sellingPrice: sp, discount: disc, totalAmount: total,
+        paymentStatus,
+        progressiveTotal: 0,
+      };
+      updateRetailSale(editIndex, oldSale, newSale);
     } else {
       const newSale: RetailSale = {
         date: formattedDate,
@@ -86,7 +82,7 @@ const Retail = () => {
         paymentStatus,
         progressiveTotal: currentTotal + total,
       };
-      setSales(prev => [...prev, newSale]);
+      addRetailSale(newSale);
     }
 
     resetForm();

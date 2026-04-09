@@ -7,14 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useLocalStorage } from "@/hooks/use-local-storage";
-import { defaultStock, StockItem, purchaseEntries, pricingData } from "@/data/stock";
+import { useAppData } from "@/hooks/use-app-data";
+import { pricingData } from "@/data/stock";
 import { toast } from "@/components/ui/use-toast";
 
 const formatCurrency = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
 const Stock = () => {
-  const [stock, setStock] = useLocalStorage<StockItem[]>("tc_stock", defaultStock);
+  const { stock, setStock, purchaseEntries, totalInvestment } = useAppData();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "in-stock" | "sold-out">("all");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -23,7 +23,7 @@ const Stock = () => {
   const [supplierFilter, setSupplierFilter] = useState("all");
 
   const totals = useMemo(() => {
-    const t = { purchased: 0, sale: 0, returnCount: 0, damage: 0, remaining: 0, items: stock.length, soldOut: 0, totalCost: 0 };
+    const t = { purchased: 0, sale: 0, returnCount: 0, damage: 0, remaining: 0, items: stock.length, soldOut: 0, totalCost: totalInvestment };
     stock.forEach(s => {
       t.purchased += s.purchased;
       t.sale += s.sale;
@@ -32,9 +32,8 @@ const Stock = () => {
       t.remaining += s.remaining;
       if (s.remaining === 0 && s.purchased > 0) t.soldOut++;
     });
-    purchaseEntries.forEach(p => { t.totalCost += p.amount; });
     return t;
-  }, [stock]);
+  }, [stock, totalInvestment]);
 
   const filtered = useMemo(() => {
     let list = stock;
