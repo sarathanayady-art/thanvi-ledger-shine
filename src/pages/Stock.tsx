@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppData } from "@/hooks/use-app-data";
-import { pricingData } from "@/data/stock";
+import { pricingData, StockItem } from "@/data/stock";
 import { toast } from "@/components/ui/use-toast";
 
 const formatCurrency = (n: number) => `₹${n.toLocaleString("en-IN")}`;
