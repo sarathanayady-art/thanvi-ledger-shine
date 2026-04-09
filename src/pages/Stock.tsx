@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import AppLayout from "@/components/AppLayout";
 import StatCard from "@/components/StatCard";
-import { Package, PackageCheck, PackageMinus, RotateCcw, Plus, Pencil, Search, IndianRupee } from "lucide-react";
+import { Package, PackageCheck, PackageMinus, RotateCcw, Plus, Pencil, Search, IndianRupee, Upload } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppData } from "@/hooks/use-app-data";
 import { pricingData, StockItem } from "@/data/stock";
 import { toast } from "@/components/ui/use-toast";
+import ExcelUpload from "@/components/ExcelUpload";
 
 const formatCurrency = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
@@ -122,9 +123,13 @@ const Stock = () => {
           <h1 className="page-header font-display bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Stock Inventory</h1>
           <p className="page-subtitle">Track items — purchased, sold, returned, damaged & remaining</p>
         </div>
-        <Button onClick={openAdd} className="gap-2">
-          <Plus size={16} /> Add Stock
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <ExcelUpload mode="purchase" onUploadPurchases={addPurchaseEntries} />
+          <ExcelUpload mode="consumption" onUploadConsumption={bulkUpdateConsumption} />
+          <Button onClick={openAdd} className="gap-2">
+            <Plus size={16} /> Add Stock
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
