@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import AppLayout from "@/components/AppLayout";
 import StatCard from "@/components/StatCard";
-import { Package, PackageCheck, PackageMinus, RotateCcw, Plus, Pencil, Search, IndianRupee } from "lucide-react";
+import { Package, PackageCheck, PackageMinus, RotateCcw, Plus, Pencil, Search, IndianRupee, Upload } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,11 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppData } from "@/hooks/use-app-data";
 import { pricingData, StockItem } from "@/data/stock";
 import { toast } from "@/components/ui/use-toast";
+import ExcelUpload from "@/components/ExcelUpload";
 
 const formatCurrency = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
 const Stock = () => {
-  const { stock, setStock, purchaseEntries, totalInvestment } = useAppData();
+  const { stock, setStock, purchases, addPurchaseEntries, bulkUpdateConsumption, totalInvestment } = useAppData();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "in-stock" | "sold-out">("all");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -47,7 +48,7 @@ const Stock = () => {
   }, [stock, search, filter]);
 
   const filteredPurchases = useMemo(() => {
-    let list = purchaseEntries;
+    let list = purchases;
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(p => p.itemCode.toLowerCase().includes(q) || p.supplier.toLowerCase().includes(q));
@@ -56,11 +57,11 @@ const Stock = () => {
       list = list.filter(p => p.supplier === supplierFilter);
     }
     return list;
-  }, [search, supplierFilter]);
+  }, [search, supplierFilter, purchases]);
 
   const filteredPricing = useMemo(() => {
     const entries = Object.entries(pricingData).map(([code, p]) => {
-      const purchase = purchaseEntries.find(pe => pe.itemCode === code);
+      const purchase = purchases.find(pe => pe.itemCode === code);
       const costPrice = purchase?.unitPrice || 0;
       return { code, costPrice, ...p };
     });
@@ -69,12 +70,12 @@ const Stock = () => {
       return entries.filter(e => e.code.toLowerCase().includes(q));
     }
     return entries;
-  }, [search]);
+  }, [search, purchases]);
 
   const suppliers = useMemo(() => {
-    const set = new Set(purchaseEntries.map(p => p.supplier));
+    const set = new Set(purchases.map(p => p.supplier));
     return Array.from(set).sort();
-  }, []);
+  }, [purchases]);
 
   const openAdd = () => {
     setEditIdx(null);
@@ -122,9 +123,13 @@ const Stock = () => {
           <h1 className="page-header font-display bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Stock Inventory</h1>
           <p className="page-subtitle">Track items — purchased, sold, returned, damaged & remaining</p>
         </div>
-        <Button onClick={openAdd} className="gap-2">
-          <Plus size={16} /> Add Stock
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <ExcelUpload mode="purchase" onUploadPurchases={addPurchaseEntries} />
+          <ExcelUpload mode="consumption" onUploadConsumption={bulkUpdateConsumption} />
+          <Button onClick={openAdd} className="gap-2">
+            <Plus size={16} /> Add Stock
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -234,7 +239,7 @@ const Stock = () => {
         <TabsContent value="purchases">
           <div className="flex gap-2 mb-4 flex-wrap">
             <Button size="sm" variant={supplierFilter === "all" ? "default" : "outline"} onClick={() => setSupplierFilter("all")} className="text-xs">All Suppliers</Button>
-            {suppliers.map(s => (
+            {suppliers.map((s: string) => (
               <Button key={s} size="sm" variant={supplierFilter === s ? "default" : "outline"} onClick={() => setSupplierFilter(s)} className="text-xs">{s}</Button>
             ))}
           </div>

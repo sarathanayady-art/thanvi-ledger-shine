@@ -3,7 +3,7 @@ import { clientsData as initialClients, Client } from "@/data/clients";
 import { retailSalesData as initialRetail, RetailSale } from "@/data/retail";
 import { expensesData as initialExpenses, Expense } from "@/data/expenses";
 import { shareHistory as initialShares, PartnerShare, partners } from "@/data/partners";
-import { defaultStock, StockItem, purchaseEntries } from "@/data/stock";
+import { defaultStock, StockItem, purchaseEntries as initialPurchases, PurchaseEntry } from "@/data/stock";
 import { useCallback } from "react";
 
 export function useAppData() {
@@ -12,6 +12,7 @@ export function useAppData() {
   const [expenses, setExpenses] = useLocalStorage<Expense[]>("thanvi_expenses", [...initialExpenses]);
   const [shares, setShares] = useLocalStorage<PartnerShare[]>("thanvi_shares", [...initialShares]);
   const [stock, setStock] = useLocalStorage<StockItem[]>("tc_stock", defaultStock);
+  const [purchases, setPurchases] = useLocalStorage<PurchaseEntry[]>("tc_purchases", [...initialPurchases]);
 
   // ─── Auto-sync: update stock when a retail sale is saved ───
   const addRetailSale = useCallback((newSale: RetailSale) => {
@@ -57,6 +58,57 @@ export function useAppData() {
     });
   }, [setSales, setStock]);
 
+  // ─── Bulk upload: add purchase entries and auto-update stock ───
+  const addPurchaseEntries = useCallback((newEntries: PurchaseEntry[]) => {
+    setPurchases(prev => {
+      const lastSl = prev.length > 0 ? prev[prev.length - 1].sl : 0;
+      const lastTotal = prev.length > 0 ? prev[prev.length - 1].progressiveTotal : 0;
+      let running = lastTotal;
+      const withSl = newEntries.map((e, i) => {
+        running += e.amount;
+        return { ...e, sl: lastSl + i + 1, progressiveTotal: running };
+      });
+      return [...prev, ...withSl];
+    });
+    // Auto-update stock: add purchased qty to existing items or create new ones
+    setStock(prev => {
+      const updated = [...prev];
+      newEntries.forEach(entry => {
+        const code = entry.itemCode.toUpperCase();
+        const idx = updated.findIndex(s => s.name.toUpperCase() === code);
+        if (idx >= 0) {
+          updated[idx] = {
+            ...updated[idx],
+            purchased: updated[idx].purchased + entry.quantity,
+            remaining: updated[idx].remaining + entry.quantity,
+          };
+        } else if (entry.quantity > 0) {
+          updated.push({ name: code, purchased: entry.quantity, sale: 0, return: 0, damage: 0, remaining: entry.quantity });
+        }
+      });
+      return updated;
+    });
+  }, [setPurchases, setStock]);
+
+  // ─── Bulk consumption: update sale counts from uploaded data ───
+  const bulkUpdateConsumption = useCallback((items: { itemCode: string; qty: number }[]) => {
+    setStock(prev => {
+      const updated = [...prev];
+      items.forEach(({ itemCode, qty }) => {
+        const code = itemCode.toUpperCase();
+        const idx = updated.findIndex(s => s.name.toUpperCase() === code);
+        if (idx >= 0) {
+          updated[idx] = {
+            ...updated[idx],
+            sale: updated[idx].sale + qty,
+            remaining: Math.max(0, updated[idx].remaining - qty),
+          };
+        }
+      });
+      return updated;
+    });
+  }, [setStock]);
+
   // Stock stats
   const stockTotal = stock.length;
   const stockSoldOut = stock.filter(s => s.remaining === 0 && s.purchased > 0).length;
@@ -94,7 +146,7 @@ export function useAppData() {
   const pendingClients = clients.filter(c => c.balance > 0).length;
 
   // Total investment from purchase ledger
-  const totalInvestment = purchaseEntries.reduce((s, p) => s + p.amount, 0);
+  const totalInvestment = purchases.reduce((s, p) => s + p.amount, 0);
 
   return {
     clients, setClients,
@@ -102,8 +154,8 @@ export function useAppData() {
     expenses, setExpenses,
     shares: effectiveShares, setShares,
     stock, setStock,
+    purchases, setPurchases, addPurchaseEntries, bulkUpdateConsumption,
     partners,
-    purchaseEntries,
     // Computed
     totalSale,
     totalCollection,
