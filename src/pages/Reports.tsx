@@ -1,6 +1,6 @@
 import AppLayout from "@/components/AppLayout";
 import { useAppData } from "@/hooks/use-app-data";
-import { purchaseEntries, pricingData, defaultStock } from "@/data/stock";
+import { pricingData } from "@/data/stock";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { TrendingUp, TrendingDown, IndianRupee, Package } from "lucide-react";
 
@@ -13,7 +13,7 @@ const parseMonth = (dateStr: string) => {
 };
 
 const Reports = () => {
-  const { clients, sales, expenses, totalSale, retailTotal } = useAppData();
+  const { clients, sales, expenses, totalSale, retailTotal, stock, purchaseEntries } = useAppData();
 
   // ─── Profit Calculation ───
   // Build purchase price map: itemCode → unitPrice
@@ -23,7 +23,7 @@ const Reports = () => {
   });
 
   // Calculate COGS from stock sold quantities
-  const cogs = defaultStock.reduce((total, item) => {
+  const cogs = stock.reduce((total, item) => {
     const costPrice = purchasePriceMap[item.name] || 0;
     return total + (item.sale * costPrice);
   }, 0);
@@ -133,7 +133,7 @@ const Reports = () => {
           <div className="p-4 rounded-lg bg-muted/40 border border-border">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Unsold Stock Value</p>
             <p className="text-xl font-bold mt-1 font-mono text-foreground">
-              {formatCurrency(defaultStock.reduce((t, i) => t + i.remaining * (purchasePriceMap[i.name] || 0), 0))}
+              {formatCurrency(stock.reduce((t, i) => t + i.remaining * (purchasePriceMap[i.name] || 0), 0))}
             </p>
             <p className="text-xs text-muted-foreground mt-1">At purchase cost</p>
           </div>
