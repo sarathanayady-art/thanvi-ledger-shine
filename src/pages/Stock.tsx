@@ -47,7 +47,7 @@ const Stock = () => {
   }, [stock, search, filter]);
 
   const filteredPurchases = useMemo(() => {
-    let list = purchaseEntries;
+    let list = purchases;
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(p => p.itemCode.toLowerCase().includes(q) || p.supplier.toLowerCase().includes(q));
@@ -56,11 +56,11 @@ const Stock = () => {
       list = list.filter(p => p.supplier === supplierFilter);
     }
     return list;
-  }, [search, supplierFilter]);
+  }, [search, supplierFilter, purchases]);
 
   const filteredPricing = useMemo(() => {
     const entries = Object.entries(pricingData).map(([code, p]) => {
-      const purchase = purchaseEntries.find(pe => pe.itemCode === code);
+      const purchase = purchases.find(pe => pe.itemCode === code);
       const costPrice = purchase?.unitPrice || 0;
       return { code, costPrice, ...p };
     });
@@ -69,12 +69,12 @@ const Stock = () => {
       return entries.filter(e => e.code.toLowerCase().includes(q));
     }
     return entries;
-  }, [search]);
+  }, [search, purchases]);
 
   const suppliers = useMemo(() => {
-    const set = new Set(purchaseEntries.map(p => p.supplier));
+    const set = new Set(purchases.map(p => p.supplier));
     return Array.from(set).sort();
-  }, []);
+  }, [purchases]);
 
   const openAdd = () => {
     setEditIdx(null);
@@ -234,7 +234,7 @@ const Stock = () => {
         <TabsContent value="purchases">
           <div className="flex gap-2 mb-4 flex-wrap">
             <Button size="sm" variant={supplierFilter === "all" ? "default" : "outline"} onClick={() => setSupplierFilter("all")} className="text-xs">All Suppliers</Button>
-            {suppliers.map(s => (
+            {suppliers.map((s: string) => (
               <Button key={s} size="sm" variant={supplierFilter === s ? "default" : "outline"} onClick={() => setSupplierFilter(s)} className="text-xs">{s}</Button>
             ))}
           </div>
