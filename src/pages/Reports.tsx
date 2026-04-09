@@ -13,12 +13,12 @@ const parseMonth = (dateStr: string) => {
 };
 
 const Reports = () => {
-  const { clients, sales, expenses, totalSale, retailTotal, stock, purchaseEntries } = useAppData();
+  const { clients, sales, expenses, totalSale, retailTotal, stock, purchases } = useAppData();
 
   // ─── Profit Calculation ───
   // Build purchase price map: itemCode → unitPrice
   const purchasePriceMap: Record<string, number> = {};
-  purchaseEntries.forEach(p => {
+  purchases.forEach(p => {
     if (!purchasePriceMap[p.itemCode]) purchasePriceMap[p.itemCode] = p.unitPrice;
   });
 

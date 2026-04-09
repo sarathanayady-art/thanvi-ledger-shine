@@ -14,7 +14,7 @@ import { toast } from "@/components/ui/use-toast";
 const formatCurrency = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
 const Stock = () => {
-  const { stock, setStock, purchaseEntries, totalInvestment } = useAppData();
+  const { stock, setStock, purchases, addPurchaseEntries, bulkUpdateConsumption, totalInvestment } = useAppData();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "in-stock" | "sold-out">("all");
   const [dialogOpen, setDialogOpen] = useState(false);
